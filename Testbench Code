@@ -1,0 +1,135 @@
+`timescale 1ns / 1ps
+
+//////////////////////////////////////////////////////////////////////////////////
+// Engineer: Muthukumar V
+// Create Date: 12/12/2024 
+// Design Name: FIFO memory system
+// Module Name: fifo 
+//////////////////////////////////////////////////////////////////////////////////
+
+module fifo_tb;
+   parameter SIZE = 8;
+   parameter WIDTH = 8;
+   parameter ALMOST_FULL_THRESH = SIZE - 2;
+   parameter ALMOST_EMPTY_THRESH = 2;
+
+   reg clk;
+   reg rst;
+   reg push;
+   reg pull;
+   reg flush;
+   reg overwrite;
+   reg peek;
+   reg [WIDTH-1:0] data_in;
+   wire [WIDTH-1:0] data_out;
+   wire [WIDTH-1:0] peek_out;
+   wire full;
+   wire empty;
+   wire almost_full;
+   wire almost_empty;
+
+   // Instantiate the FIFO
+   fif_system #(
+		.SIZE(SIZE), 
+		.WIDTH(WIDTH), 
+		.ALMOST_FULL_THRESH(ALMOST_FULL_THRESH), 
+		.ALMOST_EMPTY_THRESH(ALMOST_EMPTY_THRESH)
+		) uut (
+       .clk(clk),
+       .rst(rst),
+       .push(push),
+       .pull(pull),
+       .flush(flush),
+       .overwrite(overwrite),
+       .peek(peek),
+       .data_in(data_in),
+       .data_out(data_out),
+       .peek_out(peek_out),
+       .full(full),
+       .empty(empty),
+       .almost_full(almost_full),
+       .almost_empty(almost_empty)
+   );
+    
+	 // Clock generation
+    always #10 clk = ~clk;
+	 
+	   // Testbench process
+    initial begin
+        // Initialize signals
+        clk = 0;
+        rst = 1;
+        push = 0;
+        pull = 0;
+        flush = 0;
+        overwrite = 0;
+        peek = 0;
+        data_in = 0;
+
+        // Reset FIFO
+        #10 rst = 0;
+        
+		  // Test Case 1: Push data into FIFO
+		  #10
+		  push = 1;
+		  data_in = 8'h01; // Push '01' 
+		  push = 0;#20
+		  push = 1;
+		  data_in = 8'h02; // Push '02'  
+		  push = 0;
+		  #10
+		  push = 1;
+		  data_in = 8'h03; // Push '03' 
+		  push = 0;
+		  #10
+		  
+		  // Test Case 2: Peek at the first data
+        #10 peek = 1; 
+		  #10 peek = 0;
+		  
+		  // Test Case 3: Pull data from FIFO
+        #10 pull = 1; #10 pull = 0; // Pull '01'
+        #10 pull = 1; #10 pull = 0; // Pull '02'
+		  
+		  // Test Case 4: Push more data
+		  push = 1;
+		  data_in = 8'h04; // Push '04'  
+		  push = 0;
+		  #10
+		  push = 1;
+		  data_in = 8'h05; // Push '05'  
+		  push = 0;
+		          
+		  // Test Case 5: Check almost_full condition
+        #10 
+		  push = 1;
+		  data_in = 8'h06; // Push '06'
+		  push = 0;  
+		  #10 
+		  push = 1;
+		  data_in = 8'h07; // Push '07'
+		  push = 0; 
+		  
+		  // Test Case 6: Enable overwrite and push when full
+        #10 overwrite = 1;
+		  #10 
+		  push = 1;
+		  data_in = 8'h08; // Overwrite '03' with '08'
+		  push = 0; 
+		  #10 
+		  push = 1;
+		  data_in = 8'h09; // Overwrite '03' with '09'
+		  push = 0;
+        #10 overwrite = 0;
+		  
+		  // Test Case 7: Pull remaining data
+        #10 pull = 1; #10 pull = 0;  // Pull '05'
+        #10 pull = 1; #10 pull = 0;  // Pull '06'
+		  
+		  // Test Case 8: Flush FIFO
+        #10 flush = 1; #10 flush = 0;
+        
+		  
+		  
+	end	
+endmodule

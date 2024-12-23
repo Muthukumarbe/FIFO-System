@@ -1,0 +1,77 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Engineer: Muthukumar V
+// Create Date: 12/12/2024 
+// Design Name: FIFO memory system
+// Module Name: fifo 
+//////////////////////////////////////////////////////////////////////////////////
+module fif_system #(parameter SIZE = 8, WIDTH = 8, ALMOST_FULL_THRESH = SIZE-2, ALMOST_EMPTY_THRESH = 2)(
+    input wire clk,
+    input wire rst,
+    input wire push,
+    input wire pull,
+    input wire flush,
+    input wire overwrite,
+    input wire peek,
+    input wire [WIDTH-1:0] data_in,
+    output reg [WIDTH-1:0] data_out,
+    output reg [WIDTH-1:0] peek_out,
+    output wire full,
+    output wire empty,
+    output wire almost_full,
+    output wire almost_empty
+    );
+	 
+	 reg [WIDTH-1:0] fifo_mem [0:SIZE-1]; // FIFO memory array
+    reg [$clog2(SIZE):0] write_ptr; // Write pointer
+    reg [$clog2(SIZE):0] read_ptr; // Read pointer
+    reg [$clog2(SIZE+1):0] count; // Track number of elements
+	 
+	 // Status flags
+    assign full = (count == SIZE);
+    assign empty = (count == 0);
+    assign almost_full = (count >= ALMOST_FULL_THRESH);
+    assign almost_empty = (count <= ALMOST_EMPTY_THRESH);
+	 
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            // Reset logic
+            write_ptr <= 0;
+            read_ptr <= 0;
+            count <= 0;
+            data_out <= 0;
+            peek_out <= 0;
+        end else begin
+            if (flush) begin
+                // Flush the FIFO
+                write_ptr <= 0;
+                read_ptr <= 0;
+                count <= 0;
+                data_out <= 0;
+                peek_out <= 0;
+            end else begin
+                // Push data
+                if (push) begin
+                    if (!full || overwrite) begin
+                        fifo_mem[write_ptr] <= data_in;
+                        write_ptr <= (write_ptr + 1) % SIZE;
+                        if (!full) count <= count + 1;
+                        else if (overwrite) read_ptr <= (read_ptr + 1) % SIZE; // Adjust read pointer for overwrite
+                    end
+                end
+
+                // Pull data
+                if (pull && !empty) begin
+                    data_out <= fifo_mem[read_ptr];
+                    read_ptr <= (read_ptr + 1) % SIZE;
+                    count <= count - 1;
+                end
+
+                // Peek data
+                if (peek && !empty) begin
+                    peek_out <= fifo_mem[read_ptr];
+                end
+            end
+        end
+    end
+endmodule
